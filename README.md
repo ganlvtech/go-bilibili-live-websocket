@@ -1,4 +1,6 @@
-# Bilibili Live WebSocket Go Client
+# Bilibili Live WebSocket Go Client Demo
+
+This project is only a demo. Keep everything simplest.
 
 ## Usage
 
