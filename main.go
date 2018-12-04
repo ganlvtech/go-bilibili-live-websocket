@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/bitly/go-simplejson"
@@ -51,6 +53,13 @@ func decode(data []byte) []bilibiliPacket {
 	return result
 }
 
+func getRoomId(shortId int) int {
+	resp, _ := http.Get("https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.Itoa(shortId))
+	json2, _ := simplejson.NewFromReader(resp.Body)
+	roomId, _ := json2.Get("data").Get("room_id").Int()
+	return roomId
+}
+
 func encodeRoomInit(roomId int) []byte {
 	json2 := simplejson.New()
 	json2.Set("uid", 0)
@@ -72,9 +81,18 @@ func main() {
 	defer log.Println("Bilibili Live WebSocket Go Client Close")
 	log.Println("Bilibili Live WebSocket Go Client Start")
 
-	// Ctrl-C interrupt
+	// Ctrl-C Interrupt
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
+
+	// Get Real Room Id
+	roomId := 3
+	if len(os.Args) > 1 {
+		roomId, _ = strconv.Atoi(os.Args[1])
+	}
+	log.Println("Room Id:", roomId)
+	roomId = getRoomId(roomId)
+	log.Println("Real Room Id:", roomId)
 
 	// Create websocket
 	c, _, err := websocket.DefaultDialer.Dial("wss://broadcastlv.chat.bilibili.com:2245/sub", nil)
@@ -84,8 +102,8 @@ func main() {
 	}
 	defer c.Close()
 
-	// Send hello
-	err = c.WriteMessage(websocket.TextMessage, encode(encodeRoomInit(2029840), 7))
+	// Send Hello
+	err = c.WriteMessage(websocket.TextMessage, encode(encodeRoomInit(roomId), 7))
 	if err != nil {
 		log.Println("Write Error:", err)
 		return
